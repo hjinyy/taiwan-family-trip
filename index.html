@@ -49,6 +49,14 @@
             transform: rotate(-45deg);
             flex: 0 0 auto;
         }
+        .current-location-dot {
+            width: 18px;
+            height: 18px;
+            border: 3px solid white;
+            border-radius: 50%;
+            background: #1d4ed8;
+            box-shadow: 0 0 0 2px #1d4ed8;
+        }
         .itinerary-item {
             transition: background-color 180ms ease, box-shadow 180ms ease;
         }
@@ -149,17 +157,26 @@
             <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-200 no-print" aria-labelledby="map-heading">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
                     <div>
-                        <h2 id="map-heading" class="font-bold text-slate-800 text-base flex items-center gap-2">
+                        <h2 id="map-heading" class="font-bold text-slate-800 text-base flex items-center gap-2 scroll-mt-24">
                             <i class="fa-solid fa-map-location-dot text-teal-600"></i> 여행 지도
                         </h2>
                         <p id="map-status" class="text-xs text-slate-500 mt-1" role="status" aria-live="polite">지도를 불러오는 중입니다.</p>
+                        <p id="map-action-status" class="text-xs text-teal-700 mt-1" role="status" aria-live="polite"></p>
                     </div>
-                    <div class="flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-600" aria-label="지도 핀 색상 안내">
-                        <span class="flex items-center gap-1.5"><span class="map-pin-swatch bg-purple-600" aria-hidden="true"></span>이동</span>
-                        <span class="flex items-center gap-1.5"><span class="map-pin-swatch bg-amber-500" aria-hidden="true"></span>식사</span>
-                        <span class="flex items-center gap-1.5"><span class="map-pin-swatch bg-emerald-600" aria-hidden="true"></span>숙소</span>
-                        <span class="flex items-center gap-1.5"><span class="map-pin-swatch bg-blue-600" aria-hidden="true"></span>관광</span>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button id="current-location-button" type="button" onclick="showCurrentLocation()" disabled class="min-h-11 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium rounded-lg transition flex items-center gap-2">
+                            <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i> 현재 위치
+                        </button>
+                        <button id="directions-button" type="button" onclick="openSelectedDirections()" disabled class="min-h-11 px-3 bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium rounded-lg transition flex items-center gap-2">
+                            <i class="fa-solid fa-diamond-turn-right" aria-hidden="true"></i> 길찾기
+                        </button>
                     </div>
+                </div>
+                <div class="flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-600 mb-3" aria-label="지도 핀 색상 안내">
+                    <span class="flex items-center gap-1.5"><span class="map-pin-swatch bg-purple-600" aria-hidden="true"></span>이동</span>
+                    <span class="flex items-center gap-1.5"><span class="map-pin-swatch bg-amber-500" aria-hidden="true"></span>식사</span>
+                    <span class="flex items-center gap-1.5"><span class="map-pin-swatch bg-emerald-600" aria-hidden="true"></span>숙소</span>
+                    <span class="flex items-center gap-1.5"><span class="map-pin-swatch bg-blue-600" aria-hidden="true"></span>관광</span>
                 </div>
                 <div id="trip-map" class="w-full rounded-xl bg-slate-100 overflow-hidden" aria-label="대만 가족여행 일정 지도"></div>
             </div>
@@ -284,10 +301,6 @@
                         <li class="flex items-start gap-2">
                             <i class="fa-solid fa-check text-teal-500 mt-1 text-xs"></i>
                             <span><strong>대만 온라인 입국신고서:</strong> 출국 전 온라인(NIA)으로 미리 작성하면 입국장이 편리합니다.</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <i class="fa-solid fa-check text-teal-500 mt-1 text-xs"></i>
-                            <span><strong>대만 여행지원금(Lucky Land):</strong> 대만 도착 1~7일 전 사전 신청 필수! 공항 입국장에서 당첨 확인.</span>
                         </li>
                         <li class="flex items-start gap-2">
                             <i class="fa-solid fa-check text-teal-500 mt-1 text-xs"></i>
@@ -422,7 +435,7 @@
                     hotel: "西門町 Airbnb (1박)",
                     hotelUrl: "https://www.airbnb.co.kr/rooms/1296368375728061085?viralityEntryPoint=1&check_in=2026-11-12&check_out=2026-11-15&guests=5&adults=5&children=0&infants=0&unique_share_id=bf0c5289-1575-4330-a158-f6706000d07b&s=15&source_impression_id=p3_1792905238_P3ipRX5VLsN0wYnb",
                     items: [
-                        { time: "20:00", title: "타오위안 공항(TPE) 도착", category: "이동", location: "타오위안 국제공항", memo: "입국 수속, 짐 찾기, 대만 여행지원금(Lucky Land) 추첨 확인", lat: 25.0797, lng: 121.2342, completed: false },
+                        { time: "20:00", title: "타오위안 공항(TPE) 도착", category: "이동", location: "타오위안 국제공항", memo: "입국 수속 및 짐 찾기", lat: 25.0797, lng: 121.2342, completed: false },
                         { time: "20:40 - 21:30", title: "시먼역 숙소로 이동", category: "이동", location: "시먼역", memo: "사전 예약 픽업차량 또는 택시/공항철도 이용 (약 45분 소요)", lat: 25.0421, lng: 121.5081, completed: false },
                         { time: "21:30 ~", title: "西門町 숙소 체크인", category: "숙소", location: "No. 62號, Section 2, Kaifeng St, Fuxing Village, Wanhua District, Taipei City, 대만 108", memo: "실제 Airbnb 주소가 아닌 인근 UDE Café Bistro의 임시 지도 위치입니다. 최종 체크인 주소는 예약 안내에서 확인하세요.", lat: 25.0465588, lng: 121.5066903, completed: false },
                         { time: "체크인 후", title: "시먼딩 야식 탐방", category: "식사", location: "시먼딩 거리", memo: "행복당 버블티, 아종면선 곱창국수, 삼형매 망고빙수 등 가볍게 구경", lat: 25.0422, lng: 121.5070, completed: false }
@@ -504,6 +517,9 @@
         };
         let tripMap = null;
         let tripMarkers = [];
+        let selectedTripItem = null;
+        let selectedTripMarker = null;
+        let currentLocationMarker = null;
         let mapsLoadPromise = null;
 
         function migrateStoredData(storedData) {
@@ -528,6 +544,9 @@
                     }
                 }
                 day.items.forEach(item => {
+                    if (dayIdx === 0 && item.title === '타오위안 공항(TPE) 도착' && item.memo === '입국 수속, 짐 찾기, 대만 여행지원금(Lucky Land) 추첨 확인') {
+                        item.memo = defaultDay.items[0].memo;
+                    }
                     const migratedTitle = item.title === '베이터우 온천호텔 체크인 & 온천' ? 'JBG 호텔 체크인 & 온천' : item.title;
                     const matchedItem = defaultDay.items.find(candidate => candidate.title === migratedTitle);
                     if (matchedItem && Number.isFinite(matchedItem.lat) && Number.isFinite(matchedItem.lng)) {
@@ -605,6 +624,7 @@
                             fullscreenControl: true
                         });
                         await syncMapMarkers();
+                        document.getElementById('current-location-button').disabled = false;
                         resolve(true);
                     } catch (error) {
                         status.textContent = '지도를 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.';
@@ -626,8 +646,9 @@
         async function syncMapMarkers() {
             if (!tripMap || !window.google || !google.maps) return;
             const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary('marker');
-            tripMarkers.forEach(marker => { marker.map = null; });
+            tripMarkers.forEach(entry => { entry.marker.map = null; });
             tripMarkers = [];
+            selectedTripMarker = null;
             const bounds = new google.maps.LatLngBounds();
             let markerCount = 0;
 
@@ -650,7 +671,7 @@
                         zIndex: item.category === '숙소' ? 1000 : 100 - dayIdx * 10 - itemIdx
                     });
                     marker.addEventListener('gmp-click', () => focusItineraryItem(dayIdx, itemIdx));
-                    tripMarkers.push(marker);
+                    tripMarkers.push({ marker, pin, item, dayIdx, itemIdx });
                     bounds.extend(position);
                     markerCount += 1;
                 });
@@ -658,13 +679,92 @@
 
             if (markerCount > 0) {
                 tripMap.fitBounds(bounds, 44);
-                document.getElementById('map-status').textContent = `핀 ${markerCount}개를 표시했습니다. 핀을 누르면 해당 일정으로 이동합니다.`;
+                document.getElementById('map-status').textContent = `핀 ${markerCount}개를 표시했습니다. 핀을 누르면 일정으로, 일정 제목이나 지도에서 보기 버튼을 누르면 핀으로 이동합니다.`;
             } else {
                 document.getElementById('map-status').textContent = '지도에 표시할 위치 정보가 없습니다.';
             }
+            if (selectedTripItem) {
+                const selectedEntry = tripMarkers.find(entry => entry.item === selectedTripItem);
+                if (selectedEntry) {
+                    selectedTripMarker = selectedEntry;
+                    selectedEntry.marker.zIndex = 2000;
+                    selectedEntry.pin.scale = 1.2;
+                } else {
+                    selectedTripItem = null;
+                    document.getElementById('directions-button').disabled = true;
+                    document.getElementById('map-action-status').textContent = '';
+                }
+            }
+        }
+
+        function selectTripMarker(dayIdx, itemIdx, scrollToMap = true) {
+            const item = appData.days[dayIdx]?.items[itemIdx];
+            const entry = tripMarkers.find(candidate => candidate.item === item);
+            const status = document.getElementById('map-action-status');
+            if (!tripMap || !entry) {
+                status.textContent = '이 일정의 지도 핀을 표시할 수 없습니다. 위치 정보를 확인해 주세요.';
+                if (scrollToMap) document.getElementById('map-heading').scrollIntoView({ block: 'start' });
+                return;
+            }
+            if (selectedTripMarker) {
+                selectedTripMarker.marker.zIndex = selectedTripMarker.item.category === '숙소' ? 1000 : 100 - selectedTripMarker.dayIdx * 10 - selectedTripMarker.itemIdx;
+                selectedTripMarker.pin.scale = 0.9;
+            }
+            selectedTripItem = item;
+            selectedTripMarker = entry;
+            entry.marker.zIndex = 2000;
+            entry.pin.scale = 1.2;
+            tripMap.panTo({ lat: item.lat, lng: item.lng });
+            tripMap.setZoom(15);
+            document.getElementById('directions-button').disabled = false;
+            status.textContent = `${item.title} 위치를 선택했습니다. 길찾기 버튼으로 Google 지도를 열 수 있습니다.`;
+            if (scrollToMap) {
+                const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                document.getElementById('map-heading').scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+            }
+        }
+
+        function openSelectedDirections() {
+            if (!selectedTripItem) return;
+            const url = new URL('https://www.google.com/maps/dir/');
+            url.searchParams.set('api', '1');
+            url.searchParams.set('destination', `${selectedTripItem.lat},${selectedTripItem.lng}`);
+            window.open(url.toString(), '_blank', 'noopener,noreferrer');
+        }
+
+        function showCurrentLocation() {
+            const status = document.getElementById('map-action-status');
+            if (!tripMap || !navigator.geolocation) {
+                status.textContent = '이 브라우저에서는 현재 위치를 확인할 수 없습니다.';
+                return;
+            }
+            const button = document.getElementById('current-location-button');
+            button.disabled = true;
+            status.textContent = '현재 위치를 확인하는 중입니다. 위치 권한을 허용해 주세요.';
+            navigator.geolocation.getCurrentPosition(async position => {
+                try {
+                    const point = { lat: position.coords.latitude, lng: position.coords.longitude };
+                    if (currentLocationMarker) currentLocationMarker.map = null;
+                    const dot = document.createElement('span');
+                    dot.className = 'current-location-dot';
+                    const { AdvancedMarkerElement } = await google.maps.importLibrary('marker');
+                    currentLocationMarker = new AdvancedMarkerElement({ map: tripMap, position: point, content: dot, title: '현재 위치', zIndex: 3000 });
+                    tripMap.panTo(point);
+                    tripMap.setZoom(15);
+                    status.textContent = '현재 위치를 지도에 표시했습니다. 위치 정보는 저장하지 않습니다.';
+                } catch (error) {
+                    status.textContent = '현재 위치를 지도에 표시하지 못했습니다. 다시 시도해 주세요.';
+                } finally {
+                    button.disabled = false;
+                }
+            }, error => {
+                button.disabled = false;
+                status.textContent = error.code === 1 ? '위치 권한이 허용되지 않았습니다. 브라우저 설정에서 허용한 뒤 다시 시도해 주세요.' : '현재 위치를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.';
+            }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
         }
 
         function focusItineraryItem(dayIdx, itemIdx) {
+            selectTripMarker(dayIdx, itemIdx, false);
             switchTab('itinerary');
             const itemElement = document.getElementById(`itinerary-item-${dayIdx}-${itemIdx}`);
             if (!itemElement) return;
@@ -713,6 +813,7 @@
                 day.items.forEach((item, itemIdx) => {
                     const isChecked = item.completed ? 'checked' : '';
                     const strikeClass = item.completed ? 'line-through text-slate-400' : 'text-slate-800';
+                    const hasMapPin = Number.isFinite(item.lat) && Number.isFinite(item.lng);
 
                     itemsHtml += `
                         <div id="itinerary-item-${dayIdx}-${itemIdx}" tabindex="-1" class="itinerary-item flex flex-wrap sm:flex-nowrap items-start gap-3 p-3.5 bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-slate-200/60 group">
@@ -722,13 +823,14 @@
                                 <div class="flex flex-wrap items-center gap-2">
                                     <span class="text-xs font-bold text-teal-700 bg-teal-100/70 px-2 py-0.5 rounded-md"><i class="fa-regular fa-clock"></i> ${item.time}</span>
                                     ${getCategoryBadge(item.category)}
-                                    <h4 class="font-bold text-sm ${strikeClass}">${item.title}</h4>
+                                    <h4 class="font-bold text-sm ${strikeClass}">${hasMapPin ? `<button type="button" onclick="selectTripMarker(${dayIdx}, ${itemIdx})" class="text-left hover:underline underline-offset-2" title="지도에서 보기">${item.title}</button>` : item.title}</h4>
                                 </div>
                                 ${item.location ? `<p class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-location-dot text-red-400"></i> ${item.location}</p>` : ''}
                                 ${item.memo ? `<p class="text-xs text-slate-600 mt-1.5 bg-white p-2 rounded-lg border border-slate-100">${item.memo}</p>` : ''}
                             </div>
 
                             <div class="opacity-80 group-hover:opacity-100 flex items-center justify-end gap-1 w-full pl-8 sm:w-auto sm:pl-0 no-print">
+                                ${hasMapPin ? `<button type="button" onclick="selectTripMarker(${dayIdx}, ${itemIdx})" class="px-2 text-teal-700 hover:text-teal-900 text-xs font-semibold rounded-lg" title="지도에서 보기" aria-label="${item.title} 지도에서 보기"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i> 지도</button>` : ''}
                                 <button onclick="moveItem(${dayIdx}, ${itemIdx}, -1)" class="p-1 text-slate-400 hover:text-slate-600 text-xs" title="위로 이동" aria-label="${item.title} 위로 이동"><i class="fa-solid fa-arrow-up"></i></button>
                                 <button onclick="moveItem(${dayIdx}, ${itemIdx}, 1)" class="p-1 text-slate-400 hover:text-slate-600 text-xs" title="아래로 이동" aria-label="${item.title} 아래로 이동"><i class="fa-solid fa-arrow-down"></i></button>
                                 <button onclick="openModal(${dayIdx}, ${itemIdx})" class="p-1 text-slate-400 hover:text-teal-600 text-xs" title="수정" aria-label="${item.title} 수정"><i class="fa-solid fa-pen"></i></button>
