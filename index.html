@@ -404,7 +404,9 @@
                     </div>
                     <div>
                         <label for="form-location" class="block text-xs font-semibold text-slate-600 mb-1">위치 / 주요 장소</label>
-                        <input type="text" id="form-location" placeholder="예: 타이베이 중정구" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        <input type="text" id="form-location" placeholder="예: 중정기념당 또는 Taipei 101" aria-describedby="form-location-help form-location-status" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        <p id="form-location-help" class="text-xs text-slate-500 mt-1">저장할 때 Google 지도에서 대만 내 위치를 찾습니다.</p>
+                        <p id="form-location-status" class="text-xs mt-1 text-slate-500" role="status" aria-live="polite"></p>
                     </div>
                 </div>
 
@@ -415,7 +417,7 @@
 
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-medium rounded-lg transition">취소</button>
-                    <button type="submit" class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold rounded-lg shadow transition">저장하기</button>
+                    <button id="item-save-button" type="submit" class="px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg shadow transition">저장하기</button>
                 </div>
             </form>
         </div>
@@ -550,16 +552,24 @@
                     const migratedTitle = item.title === '베이터우 온천호텔 체크인 & 온천' ? 'JBG 호텔 체크인 & 온천' : item.title;
                     const matchedItem = defaultDay.items.find(candidate => candidate.title === migratedTitle);
                     if (matchedItem && Number.isFinite(matchedItem.lat) && Number.isFinite(matchedItem.lng)) {
-                        item.lat = matchedItem.lat;
-                        item.lng = matchedItem.lng;
-                        if (dayIdx === 3 && item.title === '시먼 숙소 체크아웃 & 이동') {
+                        const isLegacyTitle = migratedTitle !== item.title;
+                        const isLegacyCheckout = dayIdx === 3 && item.title === '시먼 숙소 체크아웃 & 이동' &&
+                            item.category === '숙소' && item.location === '시먼 -> 단수이';
+                        if (isLegacyCheckout) {
                             item.category = matchedItem.category;
                             item.location = matchedItem.location;
+                            item.lat = matchedItem.lat;
+                            item.lng = matchedItem.lng;
                         }
-                        if (migratedTitle !== item.title) {
+                        if (isLegacyTitle) {
                             item.title = matchedItem.title;
                             item.location = matchedItem.location;
                             item.memo = matchedItem.memo;
+                        }
+                        if ((isLegacyTitle || item.location === matchedItem.location) &&
+                            (!Number.isFinite(item.lat) || !Number.isFinite(item.lng))) {
+                            item.lat = matchedItem.lat;
+                            item.lng = matchedItem.lng;
                         }
                     }
                 });
@@ -959,6 +969,7 @@
         // MODAL HANDLERS
         let modalReturnFocus = null;
         let modalInitialState = '';
+        let saveAttempt = 0;
 
         function getModalState() {
             const fieldIds = [
@@ -973,10 +984,14 @@
         }
 
         function openModal(dayIdx = 0, itemIdx = null) {
+            saveAttempt += 1;
             modalReturnFocus = document.activeElement;
             const modal = document.getElementById('modal-item');
             modal.classList.remove('hidden');
             modal.setAttribute('aria-hidden', 'false');
+            document.getElementById('item-save-button').disabled = false;
+            document.getElementById('item-save-button').textContent = '저장하기';
+            document.getElementById('form-location-status').textContent = '';
             document.querySelectorAll('header, main, footer').forEach(element => element.setAttribute('inert', ''));
             document.getElementById('form-day-idx').value = dayIdx;
             document.getElementById('form-day-select').value = dayIdx;
@@ -1004,6 +1019,7 @@
             if (!force && getModalState() !== modalInitialState && !confirm('저장하지 않은 변경사항을 닫으시겠습니까?')) {
                 return;
             }
+            saveAttempt += 1;
             const modal = document.getElementById('modal-item');
             modal.classList.add('hidden');
             modal.setAttribute('aria-hidden', 'true');
@@ -1037,25 +1053,80 @@
             }
         });
 
-        function saveItem(e) {
+        async function geocodeLocation(address) {
+            if (!await loadGoogleMaps()) throw new Error('MAP_UNAVAILABLE');
+            const { Geocoder } = await google.maps.importLibrary('geocoding');
+            const { results } = await new Geocoder().geocode({
+                address,
+                componentRestrictions: { country: 'TW' }
+            });
+            if (!results.length) throw new Error('ZERO_RESULTS');
+            if (results[0].partial_match) throw new Error('PARTIAL_MATCH');
+            const position = results[0].geometry.location;
+            const lat = position.lat();
+            const lng = position.lng();
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error('INVALID_COORDINATES');
+            return { lat, lng };
+        }
+
+        function geocodeErrorMessage(error) {
+            const code = error?.code || error?.message;
+            if (code === 'ZERO_RESULTS' || code === 'PARTIAL_MATCH') return '위치를 찾지 못했습니다. 대만의 정확한 주소나 장소명을 입력해 주세요.';
+            if (code === 'REQUEST_DENIED') return '위치 검색을 사용할 수 없습니다. 사이트 관리자에게 Geocoding API 설정을 확인해 달라고 알려주세요.';
+            if (code === 'OVER_QUERY_LIMIT') return '위치 검색 한도에 도달했습니다. 잠시 후 다시 시도해 주세요.';
+            if (code === 'MAP_UNAVAILABLE') return '지도를 불러오지 못했습니다. 네트워크 연결을 확인하고 다시 시도해 주세요.';
+            return '위치 검색에 실패했습니다. 잠시 후 다시 시도하거나 위치를 비우고 저장해 주세요.';
+        }
+
+        async function saveItem(e) {
             e.preventDefault();
+            const attempt = ++saveAttempt;
+            const saveButton = document.getElementById('item-save-button');
+            const locationStatus = document.getElementById('form-location-status');
+            const formState = getModalState();
+            saveButton.disabled = true;
             const targetDayIdx = parseInt(document.getElementById('form-day-select').value);
             const originalDayIdx = document.getElementById('form-day-idx').value !== '' ? parseInt(document.getElementById('form-day-idx').value) : targetDayIdx;
             const itemIdx = document.getElementById('form-item-idx').value;
 
             const previousItem = itemIdx !== '' ? appData.days[originalDayIdx].items[parseInt(itemIdx)] : null;
-            const nextLocation = document.getElementById('form-location').value;
+            const nextLocation = document.getElementById('form-location').value.trim();
             const itemData = {
                 time: document.getElementById('form-time').value,
                 title: document.getElementById('form-title').value,
                 category: document.getElementById('form-category').value,
                 location: nextLocation,
                 memo: document.getElementById('form-memo').value,
-                completed: false
+                completed: previousItem?.completed || false
             };
-            if (previousItem && previousItem.location === nextLocation && Number.isFinite(previousItem.lat) && Number.isFinite(previousItem.lng)) {
-                itemData.lat = previousItem.lat;
-                itemData.lng = previousItem.lng;
+            try {
+                if (previousItem && previousItem.location?.trim() === nextLocation && Number.isFinite(previousItem.lat) && Number.isFinite(previousItem.lng)) {
+                    itemData.lat = previousItem.lat;
+                    itemData.lng = previousItem.lng;
+                } else if (nextLocation) {
+                    saveButton.textContent = '위치 찾는 중...';
+                    locationStatus.className = 'text-xs mt-1 text-teal-700';
+                    locationStatus.textContent = 'Google 지도에서 위치를 찾고 있습니다.';
+                    const coordinates = await geocodeLocation(nextLocation);
+                    if (attempt !== saveAttempt || document.getElementById('modal-item').classList.contains('hidden')) return;
+                    if (getModalState() !== formState) {
+                        locationStatus.textContent = '입력 내용이 바뀌었습니다. 다시 저장해 주세요.';
+                        return;
+                    }
+                    itemData.lat = coordinates.lat;
+                    itemData.lng = coordinates.lng;
+                }
+            } catch (error) {
+                if (attempt !== saveAttempt || document.getElementById('modal-item').classList.contains('hidden')) return;
+                locationStatus.className = 'text-xs mt-1 text-red-600';
+                locationStatus.textContent = geocodeErrorMessage(error);
+                document.getElementById('form-location').focus();
+                return;
+            } finally {
+                if (attempt === saveAttempt) {
+                    saveButton.disabled = false;
+                    saveButton.textContent = '저장하기';
+                }
             }
 
             if (itemIdx !== '') {
@@ -1064,7 +1135,6 @@
                     appData.days[originalDayIdx].items.splice(parseInt(itemIdx), 1);
                     appData.days[targetDayIdx].items.push(itemData);
                 } else {
-                    itemData.completed = appData.days[targetDayIdx].items[parseInt(itemIdx)].completed;
                     appData.days[targetDayIdx].items[parseInt(itemIdx)] = itemData;
                 }
             } else {
